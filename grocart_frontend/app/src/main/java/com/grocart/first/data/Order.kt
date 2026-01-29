@@ -1,10 +1,10 @@
-// Updated Order.kt
 package com.grocart.first.data
 
-import com.google.firebase.database.IgnoreExtraProperties
+import kotlinx.serialization.Serializable
 
-@IgnoreExtraProperties // Prevents crashes if extra fields exist in Firebase
+@Serializable
 data class Order(
+    val id: Int? = null, // MySQL ki primary key ke liye
     val items: List<InternetItem> = emptyList(),
     val timestamp: Long = System.currentTimeMillis()
 )

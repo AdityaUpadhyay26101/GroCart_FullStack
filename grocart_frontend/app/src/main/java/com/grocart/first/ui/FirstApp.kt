@@ -1,13 +1,12 @@
 package com.grocart.first.ui
 
-// Importing required Jetpack Compose and Navigation libraries
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,9 +22,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
 import com.grocart.first.data.InternetItem
-import com.google.firebase.auth.FirebaseAuth
 import com.grocart.first.R
-import kotlinx.coroutines.flow.MutableStateFlow
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+
 
 /** Enum class to define available screens and their titles */
 enum class GroAppScreen(val title: String) {
@@ -35,62 +35,44 @@ enum class GroAppScreen(val title: String) {
     Orders("My Orders")
 }
 
-// Global variable to track if back navigation is possible
+// Global variable for back navigation
 var canNavigateBack = false
-val auth = FirebaseAuth.getInstance()
 
-/**
- * Entry-point composable function for the app UI
- * Implements MVVM architecture with Navigation and Scaffold layout
- */
+// ✅ FIREBASE AUTH REMOVED
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FirstApp(
-    groViewModel: GroViewModel = viewModel(), // ViewModel for managing UI data and state
-    navController: NavHostController = rememberNavController(),// Controller for navigating between screens
-
+    groViewModel: GroViewModel = viewModel(),
+    navController: NavHostController = rememberNavController(),
 ) {
-
-
+    // Collect states from MySQL-based ViewModel
     val user by groViewModel.user.collectAsState()
     val logoutClicked by groViewModel.logoutClicked.collectAsState()
-    auth.currentUser?.let{groViewModel.setUser(it)}
-    val isVisible by groViewModel.isVisible.collectAsState()
-    // Observe current back stack entry to determine current screen
-    val backStackEntry by navController.currentBackStackEntryAsState()
+    val cartItems by groViewModel.cartItems.collectAsState()
+    val isGuest by groViewModel.isGuestSession.collectAsState()
 
-    // Get current screen from route name or default to Start screen
+    val backStackEntry by navController.currentBackStackEntryAsState()
     val currentScreen = GroAppScreen.valueOf(
         backStackEntry?.destination?.route ?: GroAppScreen.Start.name
     )
 
-    // Determine whether back navigation is allowed
     canNavigateBack = navController.previousBackStackEntry != null
-    val cartItems by groViewModel.cartItems.collectAsState()
-    val isGuest by groViewModel.isGuestSession.collectAsState()
 
-
-    if(user == null && !isGuest){
+    // Login logic updated to check MySQL user
+    if (user == null && !isGuest) {
         LoginUi(groViewModel = groViewModel)
-    }
-
-
-    else{
-        // Scaffold layout for top bar, bottom bar, and content
+    } else {
         Scaffold(
             topBar = {
                 TopAppBar(
-
                     title = {
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            // Left side: App title + cart count
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = currentScreen.title,
                                     fontSize = 26.sp,
@@ -100,256 +82,132 @@ fun FirstApp(
                                 )
                                 if (currentScreen == GroAppScreen.Cart) {
                                     Text(
-                                        text = "(${cartItems.size})",
+                                        text = " (${cartItems.size})",
                                         fontSize = 26.sp,
-                                        fontFamily = FontFamily.SansSerif,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = Color.Black
+                                        fontWeight = FontWeight.SemiBold
                                     )
                                 }
                             }
 
-                            // Right side: Logout
-                            Row(
-                                modifier = Modifier.clickable{
-                                    groViewModel.setLogoutClicked(true)
-                                }
-
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.logout),
-                                    contentDescription = "Logout",
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Text(
-                                    text = "Logout",
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(start = 2.dp)
-                                )
+                            // Logout trigger
+                            Row(modifier = Modifier.clickable { groViewModel.setLogoutClicked(true) }) {
+                                Icon(painter = painterResource(R.drawable.logout), contentDescription = "Logout", modifier = Modifier.size(24.dp))
+                                Text(text = "Logout", fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 2.dp))
                             }
                         }
                     },
-                    // Show back button only if there is a previous screen in stack
                     navigationIcon = {
                         if (canNavigateBack) {
-                            IconButton(onClick = {
-                                navController.navigateUp() // Navigate to previous screen
-                            }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back Button"
-                                )
+                            IconButton(onClick = { navController.navigateUp() }) {
+                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
                         }
                     }
                 )
             },
             bottomBar = {
-                FirstAppBar(
-                    navController = navController,
-                    currentScreen = currentScreen,
-                    cartItems = cartItems
-
-                ) // Bottom navigation bar
+                FirstAppBar(navController = navController, currentScreen = currentScreen, cartItems = cartItems, groViewModel = groViewModel)
             }
-        ) {
-            // Define navigation host with two composable destinations
-            NavHost(
-                navController = navController,
-                startDestination = GroAppScreen.Start.name,
-                modifier = Modifier.padding(it)
-            ) {
-                // Start Screen: Displays categories
+        ) { padding ->
+            NavHost(navController = navController, startDestination = GroAppScreen.Start.name, modifier = Modifier.padding(padding)) {
                 composable(route = GroAppScreen.Start.name) {
-                    StartScreen(
-                        groViewModel = groViewModel,
-                        onCategoryClicked = { category ->
-                            groViewModel.updateSelectedCategory(category) // Update ViewModel state
-                            navController.navigate(GroAppScreen.Item.name) // Navigate to Item screen
-                        }
-                    )
+                    StartScreen(groViewModel = groViewModel, onCategoryClicked = { cat ->
+                        groViewModel.updateSelectedCategory(cat)
+                        navController.navigate(GroAppScreen.Item.name)
+                    })
                 }
-
-                // Item Screen: Displays selected items from category
                 composable(route = GroAppScreen.Item.name) {
-                    InternetItemScreen(
-                        groViewModel = groViewModel,
-                        itemUiState = groViewModel.itemUiState
-                    )
+                    InternetItemScreen(groViewModel = groViewModel, itemUiState = groViewModel.itemUiState)
                 }
-                composable ( route = GroAppScreen.Cart.name ){
-                    CartScreen(groViewModel = groViewModel,
-                        onHomeButtonClicked = {
-                            navController.navigate(GroAppScreen.Start.name){
-                                popUpTo(0)
-                            }
-                        }
-
-                    )
+                composable(route = GroAppScreen.Cart.name) {
+                    CartScreen(groViewModel = groViewModel, onHomeButtonClicked = {
+                        navController.navigate(GroAppScreen.Start.name) { popUpTo(0) }
+                    })
                 }
-                composable(route = GroAppScreen.Orders.name){
+                composable(route = GroAppScreen.Orders.name) {
                     MyOrdersScreen(groViewModel = groViewModel)
                 }
-
             }
-            if (logoutClicked){
-                AlertCheck(onYesButtonPressed = {
-                    groViewModel.setLogoutClicked(false)
-                    auth.signOut()
-                    groViewModel.clearData()
 
-                }, onNoButtonPressed = {
-                    groViewModel.setLogoutClicked(false)
-                })
+            if (logoutClicked) {
+                AlertCheck(
+                    onYesButtonPressed = {
+                        groViewModel.setLogoutClicked(false)
+                        // ✅ MySQL LOGOUT: Just clear local user data
+                        groViewModel.clearData()
+                    },
+                    onNoButtonPressed = { groViewModel.setLogoutClicked(false) }
+                )
             }
         }
     }
-
-
 }
 
-/**
- * Bottom navigation bar with Home and Cart options
- */
 @Composable
-fun FirstAppBar(navController: NavHostController,
-                currentScreen: GroAppScreen,
-                cartItems: List<InternetItem>
+fun FirstAppBar(
+    navController: NavHostController,
+    currentScreen: GroAppScreen,
+    cartItems: List<InternetItem>,
+    groViewModel: GroViewModel
 ) {
-    val groViewModel: GroViewModel =viewModel ()
-    val user by groViewModel.user.collectAsState()
     val isGuest by groViewModel.isGuestSession.collectAsState()
-
     var showLoginPrompt by remember { mutableStateOf(false) }
+
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 70.dp, vertical = 10.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp, vertical = 10.dp)
     ) {
-        // Home Button
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.clickable {
-                navController.navigate(GroAppScreen.Start.name) {
-                    popUpTo(0) // Clears navigation stack to start
-                }
-            }
-        ) {
-            Icon(imageVector = Icons.Outlined.Home, contentDescription = "Home Icon")
-            Text(text = "Home", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        // Home
+        AppNavItem(Icons.Outlined.Home, "Home") {
+            navController.navigate(GroAppScreen.Start.name) { popUpTo(0) }
         }
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.clickable{
-                if(isGuest){
-                    showLoginPrompt = true
-                }else{
-                    navController.navigate(GroAppScreen.Orders.name){
-                        popUpTo(0)
-                    }
-                }
-            }
-        ){
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.List,
-                contentDescription = "My Orders Icon"
-            )
-            Text(text = "My Orders", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        // Orders
+        AppNavItem(Icons.AutoMirrored.Outlined.List, "Orders") {
+            if (isGuest) showLoginPrompt = true
+            else navController.navigate(GroAppScreen.Orders.name) { popUpTo(0) }
         }
 
-        // Cart Button (Currently navigates to Start as Cart screen isn't implemented)
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.clickable {
-                if(currentScreen != GroAppScreen.Cart){
-                    navController.navigate(GroAppScreen.Cart.name)
-                }
-
+        // Cart
+        Box(modifier = Modifier.clickable { navController.navigate(GroAppScreen.Cart.name) }) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Outlined.ShoppingCart, "Cart")
+                Text("Cart", fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
-        ) {
-            Box {
-                Icon(imageVector = Icons.Outlined.ShoppingCart,
-                    contentDescription = "Cart Icon"
-                )
-                if (cartItems.isNotEmpty())
-                    Card (
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.Red
-                        ),
-                        modifier = Modifier.align(alignment = Alignment.TopEnd)
-
-                    ){
-                        Text(text = cartItems.size.toString(),
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            modifier = Modifier.padding(horizontal = 1.dp))
-
-                    }
-                if(showLoginPrompt){
-                    AlertDialog(
-                        onDismissRequest = {
-                            showLoginPrompt = false
-                        },
-                        title = {
-                            Text(text = "Login Required")
-                        },
-                        text = {Text(text = "You must be logged in to view your cart")},
-                        confirmButton = {
-                            TextButton(onClick = {
-                                showLoginPrompt = false
-                                groViewModel.endGuestSession()
-                                navController.navigate(GroAppScreen.Start.name){
-                                    popUpTo(0) { inclusive = true }
-                                }
-                            }){
-                                Text(text = "Login")
-                            }},
-                        dismissButton = {
-                            TextButton(onClick = {
-                                showLoginPrompt = false
-                        }){
-                            Text(text = "Cancel")
-                        }}
-                    )
+            if (cartItems.isNotEmpty()) {
+                Badge(containerColor = Color.Red, modifier = Modifier.align(Alignment.TopEnd)) {
+                    Text(cartItems.size.toString(), color = Color.White)
                 }
             }
-            Text(text = "Cart", fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
+    }
+
+    if (showLoginPrompt) {
+        AlertDialog(
+            onDismissRequest = { showLoginPrompt = false },
+            title = { Text("Login Required") },
+            text = { Text("Please login to see your orders.") },
+            confirmButton = { TextButton(onClick = { groViewModel.endGuestSession(); showLoginPrompt = false }) { Text("Login") } },
+            dismissButton = { TextButton(onClick = { showLoginPrompt = false }) { Text("Cancel") } }
+        )
     }
 }
 
 @Composable
-fun AlertCheck(
-    onYesButtonPressed:() -> Unit,
-    onNoButtonPressed:() -> Unit
-){
-    AlertDialog(
-        title = {
-            Text(text = "Logout?", fontWeight = FontWeight.ExtraBold)
-        }, containerColor = Color.White,
-        text = {
-            Text(text = "Are you sure you want to logout?")
-        },
-        confirmButton = {
-            TextButton(onClick = {onYesButtonPressed()}) {
-                Text(text = "Yes")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = {onNoButtonPressed()}) {
-                Text(text = "No")
-            }
-        },
-        onDismissRequest = {
-            onNoButtonPressed()
-        }
+fun AppNavItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onClick() }) {
+        Icon(icon, label)
+        Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+    }
+}
 
+@Composable
+fun AlertCheck(onYesButtonPressed: () -> Unit, onNoButtonPressed: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onNoButtonPressed,
+        title = { Text("Logout?", fontWeight = FontWeight.ExtraBold) },
+        text = { Text("Are you sure you want to logout?") },
+        confirmButton = { TextButton(onClick = onYesButtonPressed) { Text("Yes") } },
+        dismissButton = { TextButton(onClick = onNoButtonPressed) { Text("No") } }
     )
 }
