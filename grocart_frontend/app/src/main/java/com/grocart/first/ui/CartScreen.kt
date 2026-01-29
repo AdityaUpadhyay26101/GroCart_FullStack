@@ -18,12 +18,9 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -40,12 +37,12 @@ fun CartScreen(
     groViewModel: GroViewModel,
     onHomeButtonClicked: () -> Unit
 ) {
+    // Collect states from updated GroViewModel
     val cartItems by groViewModel.cartItems.collectAsState()
     val showPaymentScreen by groViewModel.showPaymentScreen.collectAsState()
 
-    // This logic correctly groups items and counts their quantity.
     val cartItemsWithQuantity = cartItems
-        .groupBy { it.itemName } // Or a more unique ID if available
+        .groupBy { it.itemName }
         .map { (_, items) ->
             InternetItemWithQuantity(items.first(), items.size)
         }
@@ -64,15 +61,16 @@ fun CartScreen(
                     )
                 }
 
-                // Use the new grouped list here
                 items(cartItemsWithQuantity) { itemWithQuantity ->
                     CartCard(
                         item = itemWithQuantity.internetItem,
                         quantity = itemWithQuantity.quantity,
-                        onAddItem = { groViewModel.addToDatabase(itemWithQuantity.internetItem) },
+                        // Fix: Using local cart methods instead of Database
+                        onAddItem = { groViewModel.addToCart(itemWithQuantity.internetItem) },
                         onRemoveItem = { groViewModel.decreaseItemCount(itemWithQuantity.internetItem) }
                     )
                 }
+
 
                 item {
                     Text(
@@ -81,11 +79,12 @@ fun CartScreen(
                         fontSize = 22.sp
                     )
                 }
-                // The grand total of all items in the cart
-                val totalPrice = cartItems.sumOf { it.itemPrice *75 / 100 }
+
+                val totalPrice = cartItems.sumOf { it.itemPrice * 75 / 100 }
                 val handlingCharge = totalPrice * 1 / 100
                 val deliveryFee = 30
                 val grandTotal = totalPrice + handlingCharge + deliveryFee
+
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -100,9 +99,7 @@ fun CartScreen(
                             BillRow(" To Pay", grandTotal, FontWeight.ExtraBold)
                             FilledTonalButton(
                                 onClick = { groViewModel.proceedToPay() },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 16.dp)
+                                modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
                             ) {
                                 Text("Proceed to Pay")
                             }
@@ -111,31 +108,9 @@ fun CartScreen(
                 }
             }
         } else {
-            // Empty Cart UI
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.emptycart),
-                    contentDescription = "Empty Cart",
-                    modifier = Modifier.size(250.dp)
-                )
-                Text(
-                    text = "You Cart is Empty",
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier.padding(20.dp)
-                )
-                FilledTonalButton(onClick = {
-                    onHomeButtonClicked()
-                }) {
-                    Text(text = "Browse Products")
-                }
-            }
+            EmptyCartUI(onHomeButtonClicked)
         }
 
-        // Fake Payment Screen
         if (showPaymentScreen) {
             FakePaymentScreen(
                 groViewModel = groViewModel,
@@ -149,8 +124,29 @@ fun CartScreen(
     }
 }
 
+@Composable
+fun EmptyCartUI(onHomeButtonClicked: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.emptycart),
+            contentDescription = "Empty Cart",
+            modifier = Modifier.size(250.dp)
+        )
+        Text(
+            text = "Your Cart is Empty",
+            fontWeight = FontWeight.ExtraBold,
+            modifier = Modifier.padding(20.dp)
+        )
+        FilledTonalButton(onClick = onHomeButtonClicked) {
+            Text(text = "Browse Products")
+        }
+    }
+}
 
-// ✅ UPDATED: CartCard now shows the total price for the line item.
 @Composable
 fun CartCard(
     item: InternetItem,
@@ -158,8 +154,7 @@ fun CartCard(
     onAddItem: () -> Unit,
     onRemoveItem: () -> Unit
 ) {
-    // Calculate the total price for this specific item line
-    val lineItemTotalPrice = item.itemPrice * quantity
+    val lineItemTotalPrice = (item.itemPrice * 75 / 100) * quantity
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -168,43 +163,16 @@ fun CartCard(
         AsyncImage(
             model = item.imageUrl,
             contentDescription = item.itemName,
-            modifier = Modifier
-                .size(80.dp)
-                .padding(end = 8.dp) // Added padding for spacing
+            modifier = Modifier.size(80.dp).padding(end = 8.dp)
         )
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 4.dp), // Adjusted padding
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = item.itemName,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1
-            )
-            // Shows the price for a single item for clarity
-            Text(
-                text = "Rs. ${item.itemPrice * 75 /100} / each",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Light,
-            )
+        Column(modifier = Modifier.weight(1f).padding(horizontal = 4.dp)) {
+            Text(text = item.itemName, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(text = "Rs. ${item.itemPrice * 75 / 100} / each", fontSize = 14.sp, fontWeight = FontWeight.Light)
         }
-
-        // This new column will stack the quantity selector and the subtotal
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            QuantitySelector(
-                quantity = quantity,
-                onAddItem = onAddItem,
-                onRemoveItem = onRemoveItem
-            )
-            // ADDED: Display the total price for this line item
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            QuantitySelector(quantity = quantity, onAddItem = onAddItem, onRemoveItem = onRemoveItem)
             Text(
-                text = "Rs. ${lineItemTotalPrice * 75 / 100} ",
+                text = "Rs. $lineItemTotalPrice",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -213,7 +181,6 @@ fun CartCard(
     }
 }
 
-// ✅ UPDATED: To make the '+' button visually consistent.
 @Composable
 fun QuantitySelector(
     quantity: Int,
@@ -223,45 +190,28 @@ fun QuantitySelector(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp), // Increased spacing
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
     ) {
-        // --- Minus Button ---
         OutlinedIconButton(
             onClick = onRemoveItem,
             modifier = Modifier.size(32.dp),
             shape = CircleShape,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
         ) {
-            Icon(Icons.Default.Remove, contentDescription = "Remove one item", tint = MaterialTheme.colorScheme.primary)
+            Icon(Icons.Default.Remove, contentDescription = "Remove", tint = MaterialTheme.colorScheme.primary)
         }
-
-        // --- Quantity Text ---
-        Text(
-            text = "$quantity",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.width(24.dp),
-            textAlign = TextAlign.Center
-        )
-
-        // --- Plus Button ---
-        // Using IconButton with a background for a filled effect
+        Text(text = "$quantity", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(24.dp), textAlign = TextAlign.Center)
         OutlinedIconButton(
             onClick = onAddItem,
-            modifier = Modifier
-                .size(32.dp),
+            modifier = Modifier.size(32.dp),
             shape = CircleShape,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Add one item", tint = MaterialTheme.colorScheme.primary)
+            Icon(Icons.Default.Add, contentDescription = "Add", tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
-
-
-// --- NO CHANGES TO THE COMPOSABLES BELOW ---
 
 @Composable
 fun FakePaymentScreen(
@@ -285,58 +235,21 @@ fun FakePaymentScreen(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.8f))
-            .clickable(enabled = false) {},
+        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)).clickable(enabled = false) {},
         contentAlignment = Alignment.Center
     ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .padding(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
+        Card(modifier = Modifier.fillMaxWidth(0.8f).padding(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 if (!isPaymentFinished) {
-                    AnimatedContent(
-                        targetState = countdown,
-                        transitionSpec = {
-                            slideInVertically { height -> height } togetherWith
-                                    slideOutVertically { height -> -height }
-                        }, label = "Countdown Animation"
-                    ) { targetCount ->
-                        Text(
-                            text = "$targetCount",
-                            fontSize = 48.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                    AnimatedContent(targetState = countdown, label = "") { targetCount ->
+                        Text(text = "$targetCount", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                 } else {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Success",
-                        tint = Color(0xFF008069),
-                        modifier = Modifier.size(48.dp)
-                    )
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF008069), modifier = Modifier.size(48.dp))
                 }
-                Text(
-                    text = paymentStatus,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                )
+                Text(text = paymentStatus, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                 if (!isPaymentFinished) {
-                    TextButton(
-                        onClick = onPaymentCancelled,
-                        modifier = Modifier.padding(top = 8.dp)
-                    ) {
-                        Text("Cancel")
-                    }
+                    TextButton(onClick = onPaymentCancelled) { Text("Cancel") }
                 }
             }
         }
@@ -344,16 +257,9 @@ fun FakePaymentScreen(
 }
 
 @Composable
-fun BillRow(
-    itemName: String,
-    itemPrice: Int,
-    fontWeight: FontWeight
-) {
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier.fillMaxWidth()
-    ) {
+fun BillRow(itemName: String, itemPrice: Int, fontWeight: FontWeight) {
+    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
         Text(text = itemName, fontWeight = fontWeight)
-        Text(text = "Rs. $itemPrice ", fontWeight = fontWeight)
+        Text(text = "Rs. $itemPrice", fontWeight = fontWeight)
     }
 }

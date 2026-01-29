@@ -1,9 +1,11 @@
 package com.grocart.first
 
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,42 +15,42 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.grocart.first.ui.FirstApp
-import com.grocart.first.ui.theme.GrocartFirstTheme // Import your new theme
-// import androidx.core.view.WindowCompat // WindowCompat is often handled within the theme now
+import com.grocart.first.ui.GroViewModel
+import com.grocart.first.data.SessionManager // Ensure this is imported
+import com.grocart.first.ui.theme.GrocartFirstTheme
 
-// Main entry point of the app, extends ComponentActivity
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            GrocartFirstTheme {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxSize()
 
-                        .padding(WindowInsets.systemBars.asPaddingValues()),
-                    color = MaterialTheme.colorScheme.background // Sets background color from theme
-                ) {
-                    FirstApp()
-                }
+        // 1. SessionManager initialize karein
+        val sessionManager = SessionManager(this)
+
+        // 2. ViewModelFactory banayein taaki SessionManager ViewModel ko mil sake
+        val viewModelFactory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return GroViewModel(sessionManager) as T
             }
         }
-    }
-}
 
-// Preview function for Android Studio to show a preview in design mode
-@Preview(showBackground = true, name = "Light Mode")
-@Preview(showBackground = true, name = "Dark Mode", uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun DefaultPreview() { // Renamed to avoid conflict if GreetingPreview is used elsewhere
-    GrocartFirstTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            FirstApp() // Displays the same UI as your main screen for preview
+        // 3. ViewModel ko Factory ke sath initialize karein
+        val groViewModel: GroViewModel by viewModels { viewModelFactory }
+
+        setContent {
+            GrocartFirstTheme {
+                // A simple Box with a background color ensures the screen isn't black
+                // while the internal components are being measured.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                ) {
+                    FirstApp(groViewModel = groViewModel)
+                }
+            }
         }
     }
 }
