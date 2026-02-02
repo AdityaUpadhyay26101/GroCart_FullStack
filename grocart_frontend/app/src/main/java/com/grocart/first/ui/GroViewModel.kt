@@ -60,7 +60,7 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
     init {
         checkExistingSession()
         viewModelScope.launch {
-            delay(2500) // Allow UI to finish first frame
+            delay(1000) // Allow UI to finish first frame
             launch { loadUserCart() }
             launch { getFirstItem() }
         }
@@ -89,6 +89,24 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
                 }
             } catch (e: Exception) {
                 Log.e("GROCART_DEBUG", "Cart sync failed: ${e.message}")
+            }
+        }
+    }
+    fun placeOrder(total: Int) {
+        val userId = sessionManager.getUserId()
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+
+                val response = FirstApi.retrofitService.placeOrder(userId, total)
+                if (response.isSuccessful) {
+                    withContext(Dispatchers.Main) {
+                        Log.d("GROCART", "MySQL: Order placed and cart cleared!") //
+                        _cartItems.value = emptyList()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("GROCART", "MySQL Update Failed: ${e.message}")
             }
         }
     }

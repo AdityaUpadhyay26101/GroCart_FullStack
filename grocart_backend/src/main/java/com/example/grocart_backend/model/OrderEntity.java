@@ -12,6 +12,7 @@ public class OrderEntity {
 
     private Long userId;
     private Integer totalAmount;
+    private String itemDetails;
 
     private Timestamp orderDate = new Timestamp(System.currentTimeMillis());
 
@@ -29,5 +30,11 @@ public class OrderEntity {
     public void setTotalAmount(Integer totalAmount) { this.totalAmount = totalAmount; }
 
     public Timestamp getOrderDate() { return orderDate; }
-    public void setOrderDate(Timestamp orderDate) { this.orderDate = orderDate; }
+    public void setOrderDate(Timestamp orderDate) { this.orderDate = orderDate; }@Column(columnDefinition = "TEXT")
+
+
+    public String getItemDetails() { return itemDetails; }
+    public void setItemDetails(String itemDetails) { this.itemDetails = itemDetails; }
+
+
 }
