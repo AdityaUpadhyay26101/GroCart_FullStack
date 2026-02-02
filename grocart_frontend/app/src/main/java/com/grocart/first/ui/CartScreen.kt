@@ -115,6 +115,12 @@ fun CartScreen(
             FakePaymentScreen(
                 groViewModel = groViewModel,
                 onPaymentComplete = {
+                    val totalPrice = cartItems.sumOf { it.itemPrice * 75 / 100 }
+                    val handlingCharge = totalPrice * 1 / 100
+                    val deliveryFee = 30
+                    val grandTotal = totalPrice + handlingCharge + deliveryFee
+
+                    groViewModel.placeOrder(grandTotal)
                     groViewModel.completePayment()
                     onHomeButtonClicked()
                 },
