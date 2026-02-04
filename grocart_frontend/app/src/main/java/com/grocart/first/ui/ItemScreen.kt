@@ -1,7 +1,8 @@
 package com.grocart.first.ui
 
-import android.util.Log
 import android.widget.Toast
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -23,13 +25,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.grocart.first.data.InternetItem
 import com.grocart.first.R
+import com.grocart.first.data.InternetItem
 
-/**
- * 1. InternetItemScreen: Main entry point for this file.
- * Handles different UI states from the ViewModel.
- */
 @Composable
 fun InternetItemScreen(
     groViewModel: GroViewModel,
@@ -38,16 +36,13 @@ fun InternetItemScreen(
     when(itemUiState){
         is GroViewModel.ItemUiState.Loading -> LoadingScreen()
         is GroViewModel.ItemUiState.Success -> {
-            // ✅ MySQL data successfully fetched
             ItemScreen(groViewModel = groViewModel, items = itemUiState.items)
         }
-        else -> ErrorScreen(gromViewModel = groViewModel)
+        // ✅ Fix: TODO() hata diya taaki crash na ho
+        else -> ErrorScreen(groViewModel = groViewModel)
     }
 }
 
-/**
- * 2. ItemScreen: Displays the grid of items after filtering by category.
- */
 @Composable
 fun ItemScreen(
     groViewModel: GroViewModel,
@@ -56,56 +51,86 @@ fun ItemScreen(
     val groUiState by groViewModel.uiState.collectAsState()
     val selectedCategory = stringResource(groUiState.selectedCategory)
 
-    // ✅ DEBUG: Verify if list is coming from DB
-    Log.d("GROCART_DEBUG", "Total items from server: ${items.size}")
+    // ✅ Animation state observe
+    val animatingItem by groViewModel.animatingItem.collectAsState()
 
-    // Filter matching "Fresh Fruits", "Beverages", etc.
     val database = remember(items, selectedCategory) {
-        // 🛡️ Safety check: Agar items empty hain toh loop avoid karein
-        if (items.isEmpty()) {
-            emptyList()
-        } else {
-            items.filter { it.itemCategory.trim().equals(selectedCategory.trim(), ignoreCase = true) }
-        }
+        if (items.isEmpty()) emptyList()
+        else items.filter { it.itemCategory.trim().equals(selectedCategory.trim(), ignoreCase = true) }
     }
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(150.dp),
-        contentPadding = PaddingValues(10.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp)
-            ) {
-                Text(
-                    text = "$selectedCategory (${database.size})",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 10.dp)
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(150.dp),
+            contentPadding = PaddingValues(10.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // maxLineSpan check karein ViewModel mein defined hai ya nahi
+            item(span = { GridItemSpan(1) }) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp)
+                ) {
+                    Text(
+                        text = "$selectedCategory (${database.size})",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp)
+                    )
+                }
+            }
+
+            items(database) { currentItem ->
+                ItemCard(
+                    itemName = currentItem.itemName,
+                    imageUrl = currentItem.imageUrl,
+                    quantityLabel = currentItem.itemQuantity,
+                    itemPrice = currentItem.itemPrice,
+                    itemCategory = currentItem.itemCategory,
+                    groViewModel = groViewModel
                 )
             }
         }
 
-        // Display items mapping to DB columns
-        items(database) { currentItem ->
-            ItemCard(
-                itemName = currentItem.itemName,       // Matches stringResourceId
-                imageUrl = currentItem.imageUrl,       // Matches imageResourceId
-                quantityLabel = currentItem.itemQuantity,
-                itemPrice = currentItem.itemPrice,
-                itemCategory = currentItem.itemCategory,
-                groViewModel = groViewModel
-            )
+        // ✅ Flying Animation Overlay
+        animatingItem?.let { item ->
+            FlyingItemAnimation(item)
         }
     }
 }
 
-/**
- * 3. ItemCard: Individual card for each product.
- */
+@Composable
+fun FlyingItemAnimation(item: InternetItem) {
+    var isStarted by remember { mutableStateOf(false) }
+
+    val animatedY by animateFloatAsState(
+        targetValue = if (isStarted) 1000f else 0f,
+        animationSpec = tween(700),
+        label = "yAnimation"
+    )
+    val animatedAlpha by animateFloatAsState(
+        targetValue = if (isStarted) 0f else 1f,
+        animationSpec = tween(700),
+        label = "alphaAnimation"
+    )
+
+    LaunchedEffect(Unit) { isStarted = true }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AsyncImage(
+            model = item.imageUrl,
+            contentDescription = null,
+            modifier = Modifier
+                .size(70.dp)
+                .offset(y = animatedY.dp)
+                .alpha(animatedAlpha)
+                .align(Alignment.Center)
+        )
+    }
+}
+
 @Composable
 fun ItemCard(
     itemName: String,
@@ -140,22 +165,21 @@ fun ItemCard(
                 Text(text = "Rs. $itemPrice", fontSize = 12.sp, color = Color.Gray, textDecoration = TextDecoration.LineThrough)
                 Text(text = "Rs. ${itemPrice * 75 / 100}", fontSize = 20.sp, color = Color(255, 116, 105, 255))
             }
-            // Display string quantity (e.g., "1 kg")
             Text(text = quantityLabel, fontSize = 14.sp, modifier = Modifier.align(Alignment.CenterVertically))
         }
 
         Card(
             modifier = Modifier.fillMaxWidth().clickable {
-                // ✅ Add to Cart logic with proper DB mapping
-                groViewModel.addToCart(
-                    InternetItem(
-                        itemName = itemName,
-                        imageUrl = imageUrl,
-                        itemQuantity = quantityLabel,
-                        itemPrice = itemPrice,
-                        itemCategory = itemCategory
-                    )
+                val currentItem = InternetItem(
+                    itemName = itemName,
+                    imageUrl = imageUrl,
+                    itemQuantity = quantityLabel,
+                    itemPrice = itemPrice,
+                    itemCategory = itemCategory
                 )
+                groViewModel.triggerAddToCartAnimation(currentItem)
+                groViewModel.addToCart(currentItem)
+
                 Toast.makeText(context, "Added to Cart", Toast.LENGTH_SHORT).show()
             },
             colors = CardDefaults.cardColors(containerColor = Color(57, 68, 179, 135))
@@ -165,20 +189,24 @@ fun ItemCard(
     }
 }
 
-/**
- * 4. Helper Screens
- */
 @Composable
 fun LoadingScreen() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator()
     }
 }
 
 @Composable
-fun ErrorScreen(gromViewModel: GroViewModel) {
-    Column(Modifier.fillMaxSize(), Arrangement.Center, Alignment.CenterHorizontally) {
+fun ErrorScreen(groViewModel: GroViewModel) { // ✅ Parameters fix
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Image(painter = painterResource(id = R.drawable.error), contentDescription = "Error")
-        Button(onClick = { gromViewModel.getFirstItem() }) { Text("Retry") }
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = { groViewModel.getFirstItem() }) {
+            Text("Retry")
+        }
     }
 }

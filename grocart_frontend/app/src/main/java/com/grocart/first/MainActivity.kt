@@ -25,29 +25,23 @@ import com.grocart.first.ui.theme.GrocartFirstTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // 1. SessionManager initialize karein
         val sessionManager = SessionManager(this)
 
-        // 2. ViewModelFactory banayein taaki SessionManager ViewModel ko mil sake
         val viewModelFactory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST") // ✅ Isse "Unchecked cast" warning khatam ho jayegi
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return GroViewModel(sessionManager) as T
+                if (modelClass.isAssignableFrom(GroViewModel::class.java)) {
+                    return GroViewModel(sessionManager) as T
+                }
+                throw IllegalArgumentException("Unknown ViewModel class")
             }
         }
 
-        // 3. ViewModel ko Factory ke sath initialize karein
         val groViewModel: GroViewModel by viewModels { viewModelFactory }
 
         setContent {
             GrocartFirstTheme {
-                // A simple Box with a background color ensures the screen isn't black
-                // while the internal components are being measured.
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                ) {
+                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                     FirstApp(groViewModel = groViewModel)
                 }
             }

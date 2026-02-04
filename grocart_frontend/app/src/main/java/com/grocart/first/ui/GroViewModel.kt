@@ -49,6 +49,8 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
 
     var itemUiState: ItemUiState by mutableStateOf(ItemUiState.Loading)
         private set
+    private val _animatingItem = MutableStateFlow<InternetItem?>(null)
+    val animatingItem = _animatingItem.asStateFlow()
 
     sealed interface ItemUiState {
         data class Success(val items: List<InternetItem>) : ItemUiState
@@ -72,6 +74,14 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
         if (savedId != -1L && savedName != null) {
             _user.value = UserResponse(id = savedId, username = savedName, email = "")
             _isGuestSession.value = false
+        }
+
+    }
+    fun triggerAddToCartAnimation(item: InternetItem) {
+        _animatingItem.value = item
+        viewModelScope.launch {
+            delay(800)
+            _animatingItem.value = null
         }
     }
 
