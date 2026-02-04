@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
+    // ✅ State variables for the UI
     private val _user = MutableStateFlow<UserResponse?>(null)
     val user: StateFlow<UserResponse?> = _user.asStateFlow()
 
@@ -68,6 +69,7 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
         }
     }
 
+    //Function for Session checking
     private fun checkExistingSession() {
         val savedId = sessionManager.getUserId()
         val savedName = sessionManager.getUsername()
@@ -77,6 +79,7 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
         }
 
     }
+    //function for trigering the animation in Item Screen When item is added to Cart.
     fun triggerAddToCartAnimation(item: InternetItem) {
         _animatingItem.value = item
         viewModelScope.launch {
@@ -85,6 +88,7 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
         }
     }
 
+    //function to Display Items in Cart and sync to MySQl database
     fun loadUserCart() {
         val userId = sessionManager.getUserId()
         if (userId == -1L) return
@@ -102,6 +106,7 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
             }
         }
     }
+    //function to place order and sync to MySQL
     fun placeOrder(total: Int) {
         val userId = sessionManager.getUserId()
 
@@ -121,6 +126,7 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
         }
     }
 
+    //Function to add item in cart
     fun addToCart(item: InternetItem) {
         val userId = _user.value?.id ?: return
         viewModelScope.launch(Dispatchers.IO) {
@@ -135,6 +141,7 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
         }
     }
 
+    //function to get items by search in items screen
     fun getFirstItem() {
         viewModelScope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) { itemUiState = ItemUiState.Loading }
@@ -157,6 +164,7 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
     fun updateSelectedCategory(cat: Int) { _uiState.update { it.copy(selectedCategory = cat) } }
     fun updateClickText(t: String) { _uiState.update { it.copy(clickStatus = t) } }
 
+    //Function for Login and Register
     fun login(u: String, p: String) {
         viewModelScope.launch {
             _loading.value = true
@@ -174,6 +182,7 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
         }
     }
 
+    //Function for Logout and clearing data when logout is clicked
     fun logout() {
         sessionManager.logout()
         _user.value = null
@@ -182,8 +191,10 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
         _logoutClicked.value = false
     }
 
+    // Function to clear all data, including logout
     fun clearData() { logout() }
 
+    // Function to register a new user and log them in
     fun register(u: String, e: String, p: String) {
         viewModelScope.launch {
             _loading.value = true
@@ -195,6 +206,7 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
         }
     }
 
+    // Function to show a fake payment complete animation
     fun completePayment() {
         if (_cartItems.value.isNotEmpty()) {
             val order = Order(items = _cartItems.value, timestamp = System.currentTimeMillis())
@@ -204,6 +216,8 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
         _showPaymentScreen.value = false
     }
 
+    // Function to removed the item from cart when payment animation will end
+    // and update the cart and added to order screen
     fun decreaseItemCount(item: InternetItem) {
         _cartItems.update { current ->
             val list = current.toMutableList()

@@ -9,12 +9,10 @@ import java.util.Optional; // ✅ Important for null safety
 @Repository
 public interface CartRepository extends JpaRepository<CartItem, Long> {
 
-    // 🛡️ Data Isolation: Sirf us user ka cart laao
+
     List<CartItem> findByUserId(Long userId);
 
-    // ✅ Same item update karne ke liye: User ID aur Item Name dono se search karein
     Optional<CartItem> findByUserIdAndItemName(Long userId, String itemName);
 
-    // Payment ke baad cart khali karne ke liye
     void deleteByUserId(Long userId);
 }

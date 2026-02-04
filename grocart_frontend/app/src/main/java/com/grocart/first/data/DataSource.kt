@@ -3,6 +3,8 @@ package com.grocart.first.data
 import com.grocart.first.R
 
 object DataSource {
+    // ✅ DATA SOURCE FOR CATEGORIES
+    val categories: List<Categories> = loadCategories()
     fun loadCategories() :List<Categories>{
         return listOf(
             Categories(stringResourceId = R.string.fresh_fruits , imageResourceId = R.drawable.fruits),

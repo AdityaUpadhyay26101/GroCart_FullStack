@@ -8,6 +8,5 @@ import java.util.List;
 
 @Repository
 public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
-    // User ki order history dekhne ke liye
     List<OrderEntity> findByUserId(Long userId);
 }

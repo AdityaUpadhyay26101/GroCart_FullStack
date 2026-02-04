@@ -38,7 +38,7 @@ enum class GroAppScreen(val title: String) {
 // Global variable for back navigation
 var canNavigateBack = false
 
-// ✅ FIREBASE AUTH REMOVED
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -192,7 +192,7 @@ fun FirstAppBar(
         )
     }
 }
-
+// Navigation
 @Composable
 fun AppNavItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onClick() }) {
@@ -200,7 +200,7 @@ fun AppNavItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: Str
         Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
-
+// ✅ ALERT DIALOG REMOVED
 @Composable
 fun AlertCheck(onYesButtonPressed: () -> Unit, onNoButtonPressed: () -> Unit) {
     AlertDialog(

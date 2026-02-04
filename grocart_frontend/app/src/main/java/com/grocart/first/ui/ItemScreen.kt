@@ -38,7 +38,7 @@ fun InternetItemScreen(
         is GroViewModel.ItemUiState.Success -> {
             ItemScreen(groViewModel = groViewModel, items = itemUiState.items)
         }
-        // ✅ Fix: TODO() hata diya taaki crash na ho
+
         else -> ErrorScreen(groViewModel = groViewModel)
     }
 }
@@ -67,7 +67,7 @@ fun ItemScreen(
             horizontalArrangement = Arrangement.spacedBy(5.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            // maxLineSpan check karein ViewModel mein defined hai ya nahi
+
             item(span = { GridItemSpan(1) }) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
@@ -197,7 +197,7 @@ fun LoadingScreen() {
 }
 
 @Composable
-fun ErrorScreen(groViewModel: GroViewModel) { // ✅ Parameters fix
+fun ErrorScreen(groViewModel: GroViewModel) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,

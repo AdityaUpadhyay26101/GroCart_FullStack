@@ -10,12 +10,12 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    // Login ke liye username se user dhundna
+
     Optional<User> findByUsername(String username);
 
-    // Registration ke waqt check karne ke liye ki username unique hai ya nahi
+
     Boolean existsByUsername(String username);
 
-    // Registration ke waqt email check karne ke liye
+
     Boolean existsByEmail(String email);
 }
