@@ -10,7 +10,7 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.http.*
 
-// Naye Data Models for MySQL
+// ✅ SERIALIZABLE CLASSES FOR LOGIN AND REGISTER
 @Serializable
 data class LoginRequest(val username: String, val password: String)
 @Serializable
@@ -18,13 +18,16 @@ data class UserResponse(val id: Long, val username: String, val email: String)
 @Serializable
 data class CartRequest(val userId: Long, val itemName: String, val itemPrice: Int, val imageUrl: String, val quantity: Int = 1)
 
+// ✅ RETROFIT SETUP
 private const val BASE_URL = "http://10.0.2.2:8080"
 private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
+
 
 private val retrofit = Retrofit.Builder()
     .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
     .baseUrl(BASE_URL)
     .build()
+
 
 interface FirstApiService {
     @GET("android/grocery_delivery_app/items.json")

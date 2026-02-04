@@ -19,7 +19,7 @@ public class OrderController {
     @Autowired
     private CartRepository cartRepository;
 
-    @Transactional // ✅ Data integrity ke liye
+    @Transactional
     @PostMapping("/place/{userId}")
     public ResponseEntity<String> placeOrder(@PathVariable Long userId, @RequestBody Integer total) {
         List<CartItem> userItems = cartRepository.findByUserId(userId);
@@ -28,19 +28,19 @@ public class OrderController {
 
         StringBuilder details = new StringBuilder();
         for (CartItem item : userItems) {
-            // ✅ item_name aur quantity ko string mein jodein
+
             details.append(item.getItemName()).append(" x").append(item.getQuantity()).append(", ");
         }
 
         OrderEntity newOrder = new OrderEntity();
         newOrder.setUserId(userId);
         newOrder.setTotalAmount(total);
-        newOrder.setItemDetails(details.toString()); // ✅ Yahan string set ho rahi hai
+        newOrder.setItemDetails(details.toString());
 
         System.out.println("DEBUG: Saving Order Details -> " + details.toString());
 
         orderRepository.save(newOrder);
-        cartRepository.deleteAll(userItems); //
+        cartRepository.deleteAll(userItems);
 
         return ResponseEntity.ok("Order Saved!");
     }

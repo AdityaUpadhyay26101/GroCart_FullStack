@@ -28,11 +28,12 @@ public class CartController {
         return ResponseEntity.ok(items);
     }
 
+    // Cart for Users and Seprating data rom one another to secure
     @PostMapping("/add/{userId}")
     public ResponseEntity<?> addToCart(@PathVariable Long userId, @RequestBody CartItem newItem) {
         return userRepository.findById(userId).map(user -> {
 
-            // 🛡️ Extra Safety: Item name check karo taaki NULL row na bane
+
             if (newItem.getItemName() == null || newItem.getItemName().isEmpty()) {
                 return ResponseEntity.badRequest().body("Item name missing in request");
             }
@@ -41,17 +42,17 @@ public class CartController {
             Optional<CartItem> existingItem = cartRepository.findByUserIdAndItemName(userId, newItem.getItemName());
 
             if (existingItem.isPresent()) {
-                // ✅ UPDATE LOGIC: Quantity badhao
+
                 CartItem itemToUpdate = existingItem.get();
                 int currentQty = itemToUpdate.getQuantity() != null ? itemToUpdate.getQuantity() : 0;
-                // Android se aayi quantity check karo
+
                 int newQty = newItem.getQuantity() != null ? newItem.getQuantity() : 1;
 
                 itemToUpdate.setQuantity(currentQty + newQty);
                 cartRepository.save(itemToUpdate);
                 return ResponseEntity.ok("Quantity updated for " + newItem.getItemName());
             } else {
-                // ✅ INSERT LOGIC: Naya item save karo
+
                 newItem.setUser(user);
 
                 // Set defaults for missing fields from Android
@@ -64,7 +65,7 @@ public class CartController {
         }).orElse(ResponseEntity.badRequest().body("User not found"));
     }
 
-    @Transactional // ✅ Delete queries ke liye zaroori hai
+    @Transactional
     @DeleteMapping("/clear/{userId}")
     public ResponseEntity<?> clearCart(@PathVariable Long userId) {
         cartRepository.deleteByUserId(userId);

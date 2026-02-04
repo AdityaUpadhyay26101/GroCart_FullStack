@@ -21,7 +21,7 @@ public class InternetItem {
     @JsonProperty("itemQuantity")
     private String itemQuantity;
 
-    // CRITICAL: Change name to itemPrice to avoid any confusion with integer mapping
+
     @JsonProperty("item_price")
     private Integer itemPrice; // Using Integer instead of int is safer for JSON parsing
 

@@ -129,7 +129,7 @@ fun CartScreen(
         }
     }
 }
-
+// ✅ EMPTY CART UI
 @Composable
 fun EmptyCartUI(onHomeButtonClicked: () -> Unit) {
     Column(
@@ -152,7 +152,7 @@ fun EmptyCartUI(onHomeButtonClicked: () -> Unit) {
         }
     }
 }
-
+// ✅ CART CARD
 @Composable
 fun CartCard(
     item: InternetItem,
@@ -186,7 +186,7 @@ fun CartCard(
         }
     }
 }
-
+// ✅ QUANTITY SELECTOR
 @Composable
 fun QuantitySelector(
     quantity: Int,
@@ -218,7 +218,7 @@ fun QuantitySelector(
         }
     }
 }
-
+// ✅ FAKE PAYMENT SCREEN
 @Composable
 fun FakePaymentScreen(
     groViewModel: GroViewModel,
@@ -262,6 +262,7 @@ fun FakePaymentScreen(
     }
 }
 
+// Helper function for Billing
 @Composable
 fun BillRow(itemName: String, itemPrice: Int, fontWeight: FontWeight) {
     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
