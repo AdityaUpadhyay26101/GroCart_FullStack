@@ -1,11 +1,14 @@
 package com.grocart.first.ui
 
-
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.*
@@ -26,7 +29,6 @@ import com.grocart.first.R
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 
-
 /** Enum class to define available screens and their titles */
 enum class GroAppScreen(val title: String) {
     Start("GroCart"),
@@ -38,14 +40,15 @@ enum class GroAppScreen(val title: String) {
 // Global variable for back navigation
 var canNavigateBack = false
 
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FirstApp(
     groViewModel: GroViewModel = viewModel(),
     navController: NavHostController = rememberNavController(),
 ) {
+    // Search State for Predictive Search
+    var searchQuery by remember { mutableStateOf("") }
+
     // Collect states from MySQL-based ViewModel
     val user by groViewModel.user.collectAsState()
     val logoutClicked by groViewModel.logoutClicked.collectAsState()
@@ -65,67 +68,116 @@ fun FirstApp(
     } else {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = currentScreen.title,
-                                    fontSize = 26.sp,
-                                    fontFamily = FontFamily.SansSerif,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(start = 16.dp, top = 8.dp)
-                                )
-                                if (currentScreen == GroAppScreen.Cart) {
+                Column {
+                    TopAppBar(
+                        title = {
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = " (${cartItems.size})",
+                                        text = currentScreen.title,
                                         fontSize = 26.sp,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontFamily = FontFamily.SansSerif,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.padding(start = 16.dp, top = 8.dp)
                                     )
+                                    if (currentScreen == GroAppScreen.Cart) {
+                                        Text(
+                                            text = " (${cartItems.size})",
+                                            fontSize = 26.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+
+                                // Logout trigger
+                                Row(modifier = Modifier.clickable { groViewModel.setLogoutClicked(true) }) {
+                                    Icon(painter = painterResource(R.drawable.logout), contentDescription = "Logout", modifier = Modifier.size(24.dp))
+                                    Text(text = "Logout", fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 2.dp))
                                 }
                             }
+                        },
+                        navigationIcon = {
+                            if (canNavigateBack) {
+                                IconButton(onClick = { navController.navigateUp() }) {
+                                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                }
+                            }
+                        }
+                    )
 
-                            // Logout trigger
-                            Row(modifier = Modifier.clickable { groViewModel.setLogoutClicked(true) }) {
-                                Icon(painter = painterResource(R.drawable.logout), contentDescription = "Logout", modifier = Modifier.size(24.dp))
-                                Text(text = "Logout", fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 2.dp))
-                            }
-                        }
-                    },
-                    navigationIcon = {
-                        if (canNavigateBack) {
-                            IconButton(onClick = { navController.navigateUp() }) {
-                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                            }
-                        }
+                    // --- BLINKIT STYLE SEARCH BAR ---
+                    if (currentScreen == GroAppScreen.Start || currentScreen == GroAppScreen.Item) {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            placeholder = { Text("Search 'Milk', 'Bread'...") },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Clear")
+                                    }
+                                }
+                            },
+                            shape = MaterialTheme.shapes.medium,
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = Color.LightGray
+                            )
+                        )
                     }
-                )
+                }
             },
             bottomBar = {
                 FirstAppBar(navController = navController, currentScreen = currentScreen, cartItems = cartItems, groViewModel = groViewModel)
             }
         ) { padding ->
-            NavHost(navController = navController, startDestination = GroAppScreen.Start.name, modifier = Modifier.padding(padding)) {
-                composable(route = GroAppScreen.Start.name) {
-                    StartScreen(groViewModel = groViewModel, onCategoryClicked = { cat ->
-                        groViewModel.updateSelectedCategory(cat)
-                        navController.navigate(GroAppScreen.Item.name)
-                    })
+            Box(modifier = Modifier.padding(padding)) {
+                NavHost(navController = navController, startDestination = GroAppScreen.Start.name) {
+                    composable(route = GroAppScreen.Start.name) {
+                        StartScreen(groViewModel = groViewModel, onCategoryClicked = { cat ->
+                            groViewModel.updateSelectedCategory(cat)
+                            navController.navigate(GroAppScreen.Item.name)
+                        })
+                    }
+                    composable(route = GroAppScreen.Item.name) {
+                        InternetItemScreen(groViewModel = groViewModel, itemUiState = groViewModel.itemUiState)
+                    }
+                    composable(route = GroAppScreen.Cart.name) {
+                        CartScreen(groViewModel = groViewModel, onHomeButtonClicked = {
+                            navController.navigate(GroAppScreen.Start.name) { popUpTo(0) }
+                        })
+                    }
+                    composable(route = GroAppScreen.Orders.name) {
+                        MyOrdersScreen(groViewModel = groViewModel)
+                    }
                 }
-                composable(route = GroAppScreen.Item.name) {
-                    InternetItemScreen(groViewModel = groViewModel, itemUiState = groViewModel.itemUiState)
-                }
-                composable(route = GroAppScreen.Cart.name) {
-                    CartScreen(groViewModel = groViewModel, onHomeButtonClicked = {
-                        navController.navigate(GroAppScreen.Start.name) { popUpTo(0) }
-                    })
-                }
-                composable(route = GroAppScreen.Orders.name) {
-                    MyOrdersScreen(groViewModel = groViewModel)
+
+                // --- PREDICTIVE SEARCH OVERLAY ---
+                if (searchQuery.isNotEmpty()) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        PredictiveResultList(
+                            query = searchQuery,
+                            groViewModel = groViewModel,
+                            onItemClick = { item ->
+                                searchQuery = "" // Reset search
+                                // Logic: Set category and navigate to Item Screen
+                                groViewModel.updateSelectedCategory(item.itemCategory.toIntOrNull() ?: 0)
+                                navController.navigate(GroAppScreen.Item.name)
+                            }
+                        )
+                    }
                 }
             }
 
@@ -133,12 +185,32 @@ fun FirstApp(
                 AlertCheck(
                     onYesButtonPressed = {
                         groViewModel.setLogoutClicked(false)
-                        // ✅ MySQL LOGOUT: Just clear local user data
                         groViewModel.clearData()
                     },
                     onNoButtonPressed = { groViewModel.setLogoutClicked(false) }
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun PredictiveResultList(
+    query: String,
+    groViewModel: GroViewModel,
+    onItemClick: (InternetItem) -> Unit
+) {
+    val filteredResults = groViewModel.getFilteredItems(query)
+
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        items(filteredResults) { item ->
+            ListItem(
+                headlineContent = { Text(item.itemName, fontWeight = FontWeight.Bold) },
+                supportingContent = { Text("Category: ${item.itemCategory}") },
+                trailingContent = { Text("₹${item.itemPrice}", color = Color(0xFF388E3C), fontWeight = FontWeight.Bold) },
+                modifier = Modifier.clickable { onItemClick(item) }
+            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
         }
     }
 }
@@ -155,20 +227,20 @@ fun FirstAppBar(
 
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp, vertical = 10.dp)
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 40.dp, vertical = 10.dp)
     ) {
-        // Home
         AppNavItem(Icons.Outlined.Home, "Home") {
             navController.navigate(GroAppScreen.Start.name) { popUpTo(0) }
         }
 
-        // Orders
         AppNavItem(Icons.AutoMirrored.Outlined.List, "Orders") {
             if (isGuest) showLoginPrompt = true
             else navController.navigate(GroAppScreen.Orders.name) { popUpTo(0) }
         }
 
-        // Cart
         Box(modifier = Modifier.clickable { navController.navigate(GroAppScreen.Cart.name) }) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Outlined.ShoppingCart, "Cart")
@@ -192,7 +264,7 @@ fun FirstAppBar(
         )
     }
 }
-// Navigation
+
 @Composable
 fun AppNavItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onClick() }) {
@@ -200,7 +272,7 @@ fun AppNavItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: Str
         Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
-// ✅ ALERT DIALOG REMOVED
+
 @Composable
 fun AlertCheck(onYesButtonPressed: () -> Unit, onNoButtonPressed: () -> Unit) {
     AlertDialog(

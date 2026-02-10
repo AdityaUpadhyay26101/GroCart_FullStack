@@ -85,9 +85,13 @@ dependencies {
 
     // Coil (Image Loading)
     implementation("io.coil-kt:coil-compose:2.6.0") // लेटेस्ट स्टेबल वर्शन
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
 
     // DataStore
-    implementation("androidx.datastore:datastore-preferences:1.1.1") // लेटेस्ट स्टेबल वर्शन
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.firebase.auth.ktx) // लेटेस्ट स्टेबल वर्शन
 
     // Debugging Tools
     debugImplementation("androidx.compose.ui:ui-tooling")

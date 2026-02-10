@@ -24,11 +24,12 @@ import com.grocart.first.ui.theme.GrocartFirstTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        super.onCreate(savedInstanceState) // Move this to the top
+
         val sessionManager = SessionManager(this)
 
         val viewModelFactory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST") // ✅ Isse "Unchecked cast" warning khatam ho jayegi
+            @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 if (modelClass.isAssignableFrom(GroViewModel::class.java)) {
                     return GroViewModel(sessionManager) as T
@@ -41,7 +42,11 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             GrocartFirstTheme {
-                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    // Your main UI entry point
                     FirstApp(groViewModel = groViewModel)
                 }
             }

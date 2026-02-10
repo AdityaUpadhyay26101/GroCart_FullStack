@@ -10,19 +10,13 @@
               <option name="connection">
                 <ConnectionSetting>
                   <option name="appId" value="com.example.first" />
-                  <option name="mobileSdkAppId" value="1:260045564563:android:28354c82e3123dd36c7b66" />
-                  <option name="projectId" value="gro-cart-108ed" />
-                  <option name="projectNumber" value="260045564563" />
+                  <option name="mobileSdkAppId" value="1:463707932916:android:96e1d85693bcd1849ff6a1" />
+                  <option name="projectId" value="grocart2" />
+                  <option name="projectNumber" value="463707932916" />
                 </ConnectionSetting>
               </option>
-              <option name="failureTypes">
-                <list>
-                  <option value="FATAL" />
-                  <option value="NON_FATAL" />
-                </list>
-              </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
-              <option name="timeIntervalDays" value="ONE_DAY" />
+              <option name="timeIntervalDays" value="THIRTY_DAYS" />
               <option name="visibilityType" value="ALL" />
             </InsightsFilterSettings>
           </value>

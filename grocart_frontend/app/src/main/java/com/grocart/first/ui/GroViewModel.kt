@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import com.grocart.first.data.InternetItem
 import com.grocart.first.data.Order
 import com.grocart.first.data.SessionManager
@@ -23,6 +24,11 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
     // ✅ State variables for the UI
     private val _user = MutableStateFlow<UserResponse?>(null)
     val user: StateFlow<UserResponse?> = _user.asStateFlow()
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+
+
+    private val _allItems = MutableStateFlow<List<InternetItem>>(emptyList())
+    val allItems: StateFlow<List<InternetItem>> = _allItems.asStateFlow()
 
     private val _cartItems = MutableStateFlow<List<InternetItem>>(emptyList())
     val cartItems: StateFlow<List<InternetItem>> = _cartItems.asStateFlow()
@@ -88,6 +94,20 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
         }
     }
 
+
+
+    // Logic to get filtered results
+    fun getFilteredItems(query: String): List<InternetItem> {
+        return if (query.trim().isEmpty()) {
+            emptyList()
+        } else {
+            _allItems.value.filter {
+                it.itemName.contains(query, ignoreCase = true) ||
+                        it.itemCategory.contains(query, ignoreCase = true)
+            }
+        }
+    }
+
     //function to Display Items in Cart and sync to MySQl database
     fun loadUserCart() {
         val userId = sessionManager.getUserId()
@@ -147,7 +167,10 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
             withContext(Dispatchers.Main) { itemUiState = ItemUiState.Loading }
             try {
                 val items = FirstApi.retrofitService.getItems()
-                withContext(Dispatchers.Main) { itemUiState = ItemUiState.Success(items) }
+                withContext(Dispatchers.Main) {
+                    itemUiState = ItemUiState.Success(items)
+                    _allItems.value = items // 🔥 CRITICAL: Store data for the search logic
+                }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) { itemUiState = ItemUiState.Error }
             }
@@ -164,6 +187,9 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
     fun updateSelectedCategory(cat: Int) { _uiState.update { it.copy(selectedCategory = cat) } }
     fun updateClickText(t: String) { _uiState.update { it.copy(clickStatus = t) } }
 
+    fun loadAllProducts(products: List<InternetItem>) {
+        _allItems.value = products
+    }
     //Function for Login and Register
     fun login(u: String, p: String) {
         viewModelScope.launch {
