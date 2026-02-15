@@ -142,7 +142,7 @@ fun ItemCard(
 ) {
     val context = LocalContext.current
 
-    Column(modifier = Modifier.width(150.dp).padding(5.dp)) {
+    Column(modifier = Modifier.width(150.dp).padding(15.dp)) {
         Card(colors = CardDefaults.cardColors(containerColor = Color(249,219,242,50))) {
             Box {
                 AsyncImage(

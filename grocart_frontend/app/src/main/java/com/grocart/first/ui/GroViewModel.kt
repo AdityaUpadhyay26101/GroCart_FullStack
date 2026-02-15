@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.auth.FirebaseAuth
+//import com.google.firebase.auth.FirebaseAuth
 import com.grocart.first.data.InternetItem
 import com.grocart.first.data.Order
 import com.grocart.first.data.SessionManager
@@ -24,7 +24,7 @@ class GroViewModel(private val sessionManager: SessionManager) : ViewModel() {
     // ✅ State variables for the UI
     private val _user = MutableStateFlow<UserResponse?>(null)
     val user: StateFlow<UserResponse?> = _user.asStateFlow()
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+//    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
 
     private val _allItems = MutableStateFlow<List<InternetItem>>(emptyList())

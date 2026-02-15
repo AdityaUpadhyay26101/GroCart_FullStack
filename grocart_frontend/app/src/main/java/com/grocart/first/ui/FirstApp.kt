@@ -1,5 +1,6 @@
 package com.grocart.first.ui
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,6 +29,8 @@ import com.grocart.first.data.InternetItem
 import com.grocart.first.R
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import com.grocart.first.data.DataSource
 
 /** Enum class to define available screens and their titles */
 enum class GroAppScreen(val title: String) {
@@ -48,6 +51,7 @@ fun FirstApp(
 ) {
     // Search State for Predictive Search
     var searchQuery by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     // Collect states from MySQL-based ViewModel
     val user by groViewModel.user.collectAsState()
@@ -170,11 +174,28 @@ fun FirstApp(
                         PredictiveResultList(
                             query = searchQuery,
                             groViewModel = groViewModel,
+                            // Inside your PredictiveResultList onItemClick in FirstApp.kt
                             onItemClick = { item ->
-                                searchQuery = "" // Reset search
-                                // Logic: Set category and navigate to Item Screen
-                                groViewModel.updateSelectedCategory(item.itemCategory.toIntOrNull() ?: 0)
-                                navController.navigate(GroAppScreen.Item.name)
+                                searchQuery = "" // Reset search bar
+
+                                // 1. Get the list of categories from your DataSource
+                                val categoryList = DataSource.loadCategories()
+
+                                // 2. Find the category where the name matches your item's category
+                                // We use context.getString to compare the actual text names
+
+                                val matchedCategory = categoryList.find { cat ->
+                                    context.getString(cat.stringResourceId) == item.itemCategory
+                                }
+
+                                if (matchedCategory != null) {
+                                    // Pass the valid Resource ID (e.g., 2131886123) instead of 0
+                                    groViewModel.updateSelectedCategory(matchedCategory.stringResourceId)
+                                    navController.navigate(GroAppScreen.Item.name)
+                                } else {
+                                    // Safety: If no match is found, don't navigate or use a default
+                                    Log.e("GROCART_ERROR", "Category name ${item.itemCategory} not found in DataSource")
+                                }
                             }
                         )
                     }
